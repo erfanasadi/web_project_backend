@@ -1,7 +1,10 @@
 package users
 
 import (
+	"database/sql"
+	"fmt"
 	"github.com/dgrijalva/jwt-go"
+	"log"
 	"strconv"
 	"strings"
 	"time"
@@ -86,6 +89,7 @@ func handleSignin(db *gorm.DB, emailOrPhone string, user *utils.User_account, pa
 	} else {
 		reqString = "phone_number = ? "
 	}
+
 	if db.Where(reqString, emailOrPhone).First(&user).RecordNotFound() {
 		if isEmail {
 			return map[string]interface{}{"message": "Wrong email"}
@@ -109,17 +113,27 @@ func handleSignin(db *gorm.DB, emailOrPhone string, user *utils.User_account, pa
 func GetUserInfo(jwt string) map[string]interface{} {
 
 	isValid, _ := utils.IsTokenValid(jwt)
+	fmt.Println(isValid)
 	if isValid != "" {
+
 		id := isValid
-		db := utils.ConnectDB()
-		user := &utils.User_account{}
-
-		// can it happen?!
-		if db.Where("user_id = ? ", id).First(&user).RecordNotFound() {
-			return map[string]interface{}{"message": "User not found"}
+		var db *sql.DB
+		db, err := sql.Open("postgres", "user=postgres password=alierfan dbname=webbackend sslmode=disable")
+		if err != nil {
+			log.Fatalf("Error connecting to the database: %v", err)
 		}
-		defer db.Close()
+		user := &utils.User_account{}
+		fmt.Println(id)
+		// can it happen?!
+		//db.Where("user_id = ? ", id).First(&user).RecordNotFound()
+		err = db.QueryRow("select * from user_account where user_id = $1", id).Scan(&user.User_id, &user.Email, &user.Phone_number, &user.Gender, &user.First_name, &user.Last_name, &user.Password_hash)
+		if err != nil {
+			fmt.Println(err)
+			return map[string]interface{}{"message": "User not found"}
 
+		}
+		fmt.Println(user)
+		defer db.Close()
 		//TODO check cache
 		_, isExpired := checkCache(id, jwt)
 		if isExpired {

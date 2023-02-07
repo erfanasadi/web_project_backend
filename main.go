@@ -65,12 +65,11 @@ func PanicHandler(next http.Handler) http.Handler {
 			error := recover()
 			if error != nil {
 				log.Println(error)
-
-				resp := utils.ErrResponse{Message: "Internal server error"}
-				err := json.NewEncoder(w).Encode(resp)
-				if err != nil {
-					return
-				}
+				//resp := utils.ErrResponse{Message: "Internal server error"}
+				//err := json.NewEncoder(w).Encode(resp)
+				//if err != nil {
+				//	return
+				//}
 			}
 		}()
 		next.ServeHTTP(w, r)
@@ -114,6 +113,7 @@ func login(write http.ResponseWriter, read *http.Request) {
 			return
 		}
 	} else if utils.IsPhoneValid(creds.EmailOrPhone) {
+
 		err = db.QueryRow("SELECT user_id FROM user_account WHERE phone_number=$1 AND password_hash=$2", creds.EmailOrPhone, creds.Password).Scan(&id)
 		if err != nil {
 			if err == sql.ErrNoRows {
@@ -208,6 +208,7 @@ func register(write http.ResponseWriter, read *http.Request) {
 }
 func profile(w http.ResponseWriter, r *http.Request) {
 	auth := r.Header.Get("Authorization")
+
 	user := users.GetUserInfo(auth)
 	resp := user
 	json.NewEncoder(w).Encode(resp)

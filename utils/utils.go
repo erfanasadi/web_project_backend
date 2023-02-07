@@ -54,7 +54,7 @@ func PassMap(pass []byte) string {
 }
 
 func ConnectDB() *gorm.DB {
-	db, err := gorm.Open("postgres", "host=127.0.0.1 port=5432 user=postgres dbname=web db password=alierfan sslmode=disable")
+	db, err := gorm.Open("postgres", "host=127.0.0.1 port=5432 user=postgres dbname=webbackend password=alierfan sslmode=disable")
 	HandleErr(err)
 	return db
 }
@@ -118,14 +118,16 @@ func IsTokenValid(jwtToken string) (string, time.Time) {
 	if jwtToken == "" {
 		return "", time.Now()
 	}
+
 	splitToken := strings.Split(jwtToken, "Bearer ")
 	jwtToken = splitToken[1]
-
+	fmt.Println("1221")
 	token, err := jwt.ParseWithClaims(jwtToken, &MyCustomClaims{}, func(token *jwt.Token) (interface{}, error) {
-		return []byte("AccessToken"), nil
+		return []byte("supersecretkey"), nil
 	})
 
 	if err != nil {
+		fmt.Println(err)
 		HandleErr(err)
 		return "", time.Now()
 	}
@@ -133,9 +135,11 @@ func IsTokenValid(jwtToken string) (string, time.Time) {
 		var tm = time.Unix(int64(claims.Expiration), 0)
 		if tm.Before(time.Now()) {
 			fmt.Println("expired token")
-			return "", time.Now()
+			return "expired token", time.Now()
 		}
+		fmt.Println("sa")
 		return strconv.Itoa(claims.User_id), tm
 	}
+	fmt.Println("11")
 	return "", time.Now()
 }
