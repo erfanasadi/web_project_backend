@@ -1,17 +1,15 @@
 
 const express = require("express");
 const db = require("./db/db");
-
+const axios = require("axios");
+const {response} = require("express");
 
 const app = express();
 
-
 app.use(express.json());
-app.get("/aa",async (req, res) => {
-    console.log("aaa")
-});
 
-app.get("/aa/:date/:origin/:destination", async (req, res) => {
+
+app.get("/flight/:date/:origin/:destination", async (req, res) => {
        console.log(req.params)
      if (req.params.date.match("^\d{4}-\d{2}-\d{2}$")) {
          return res.status(400).json({
@@ -28,6 +26,29 @@ app.get("/aa/:date/:origin/:destination", async (req, res) => {
             flights: flights.rows,
         },
     });
+
+});
+app.get("/purchase", async (req, res) => {
+    const axiosResponse = await axios.get('http://localhost:3000//isTokenValid', {
+        headers: {
+            'Autorization': req.headers.authorization
+        }
+    })
+    if(axiosResponse.data == "token is invalid") {
+        res.status(200).json({
+            data:{
+                "massege": "token is valid"
+            }
+        });
+    }
+        else{
+            res.status(200).json({
+                data:{
+                    "massege":axiosResponse.data
+                }
+        });
+    }
+
 
 });
 
