@@ -38,15 +38,15 @@ app.get("/purchase", async (req, res) => {
     if(axiosResponse.data === "token is invalid") {
         res.status(200).json({
             data:{
-
-                "massege": "token is invalid"
+                
+                "mwssage": "token is invalid"
             }
         });
     }
         else{
             res.status(200).json({
                 data:{
-                    "massege":axiosResponse.data
+                    "message":axiosResponse.data
                 }
         });
     }
