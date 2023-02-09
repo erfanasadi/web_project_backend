@@ -114,7 +114,7 @@ type MyCustomClaims struct {
 }
 
 func IsTokenValid(jwtToken string) (string, time.Time) {
-
+	fmt.Println(jwtToken)
 	if jwtToken == "" {
 		return "", time.Now()
 	}

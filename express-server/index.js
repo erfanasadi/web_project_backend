@@ -2,7 +2,7 @@
 const express = require("express");
 const db = require("./db/db");
 const axios = require("axios");
-const {response} = require("express");
+
 
 const app = express();
 
@@ -29,15 +29,17 @@ app.get("/flight/:date/:origin/:destination", async (req, res) => {
 
 });
 app.get("/purchase", async (req, res) => {
+    console.log(req.headers.authorization);
     const axiosResponse = await axios.get('http://localhost:3000//isTokenValid', {
         headers: {
-            'Autorization': req.headers.authorization
+            "Authorization": req.headers.authorization
         }
     })
-    if(axiosResponse.data == "token is invalid") {
+    if(axiosResponse.data === "token is invalid") {
         res.status(200).json({
             data:{
-                "massege": "token is valid"
+
+                "massege": "token is invalid"
             }
         });
     }

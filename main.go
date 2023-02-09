@@ -51,7 +51,7 @@ func main() {
 	httpReq.HandleFunc("/signup", register).Methods("POST")
 	httpReq.HandleFunc("/user", profile).Methods("GET")
 	httpReq.HandleFunc("/signout", signout).Methods("POST")
-	httpReq.HandleFunc("/isTokenValid", isTockenValid).Methods("GET")
+	httpReq.HandleFunc("/isTokenValid", isTokenValid).Methods("GET")
 	print("App is working on port :3000\n")
 
 	err = http.ListenAndServe(":3000", httpReq)
@@ -216,16 +216,16 @@ func profile(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusCreated)
 }
 
-func isTockenValid(w http.ResponseWriter, r *http.Request) {
+func isTokenValid(w http.ResponseWriter, r *http.Request) {
 	auth := r.Header.Get("Authorization")
+	fmt.Println(auth, "dffd")
 	isValid, _ := utils.IsTokenValid(auth)
+	fmt.Println(isValid)
 	if isValid != "" {
-		w.Write([]byte("token is valid and id =" + isValid))
-		w.WriteHeader(http.StatusOK)
+		w.Write([]byte(isValid))
 		return
 	} else {
 		w.Write([]byte("token is invalid"))
-		w.WriteHeader(http.StatusOK)
 	}
 
 }
