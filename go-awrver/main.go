@@ -66,11 +66,11 @@ func PanicHandler(next http.Handler) http.Handler {
 			error := recover()
 			if error != nil {
 				log.Println(error)
-				//resp := utils.ErrResponse{Message: "Internal server error"}
-				//err := json.NewEncoder(w).Encode(resp)
-				//if err != nil {
-				//	return
-				//}
+				resp := utils.ErrResponse{Message: "Internal server error"}
+				err := json.NewEncoder(w).Encode(resp)
+				if err != nil {
+					return
+				}
 			}
 		}()
 		next.ServeHTTP(w, r)
@@ -95,7 +95,7 @@ func login(write http.ResponseWriter, read *http.Request) {
 	// Query the database to check if the user exists and the password is correct
 	if utils.IsEmail(creds.EmailOrPhone) {
 
-		err = db.QueryRow("SELECT user_id , password_hash FROM user_account WHERE email=$1 ", creds.EmailOrPhone).Scan(&id, &password)
+		err = db.QueryRow("SELECT user_id ,password_hash FROM user_account WHERE email=$1 ", creds.EmailOrPhone).Scan(&id, &password)
 		if err != nil {
 			if err == sql.ErrNoRows {
 				http.Error(write, " email or phone do not  exist", http.StatusUnauthorized)
@@ -104,9 +104,11 @@ func login(write http.ResponseWriter, read *http.Request) {
 			http.Error(write, err.Error(), http.StatusInternalServerError)
 			return
 		}
-		passErr := bcrypt.CompareHashAndPassword([]byte(creds.Password), []byte(password))
-		if passErr == bcrypt.ErrMismatchedHashAndPassword && passErr != nil {
-			err := json.NewEncoder(write).Encode(map[string]interface{}{"message": "Phone numbers are 11 digits(09121234567)."})
+
+		passErr := bcrypt.CompareHashAndPassword([]byte(password), []byte(creds.Password))
+		fmt.Println(passErr)
+		if passErr != nil {
+			err := json.NewEncoder(write).Encode(map[string]interface{}{"message": "password is incorrect."})
 			if err != nil {
 				return
 			}
@@ -115,12 +117,23 @@ func login(write http.ResponseWriter, read *http.Request) {
 		}
 	} else if utils.IsPhoneValid(creds.EmailOrPhone) {
 
-		err = db.QueryRow("SELECT user_id FROM user_account WHERE phone_number=$1 AND password_hash=$2", creds.EmailOrPhone, creds.Password).Scan(&id)
+		err = db.QueryRow("SELECT user_id,password_hash FROM user_account WHERE phone_number=$1 ", creds.EmailOrPhone).Scan(&id, &password)
 		if err != nil {
 			if err == sql.ErrNoRows {
 				http.Error(write, "Username or password is incorrect", http.StatusUnauthorized)
 				return
 			}
+			passErr := bcrypt.CompareHashAndPassword([]byte(password), []byte(creds.Password))
+			fmt.Println(passErr)
+			if passErr != nil {
+				err := json.NewEncoder(write).Encode(map[string]interface{}{"message": "password is incorrect."})
+				if err != nil {
+					return
+				}
+				write.WriteHeader(http.StatusCreated)
+				return
+			}
+
 			http.Error(write, "Error querying the database", http.StatusInternalServerError)
 			return
 
@@ -183,7 +196,7 @@ func register(write http.ResponseWriter, read *http.Request) {
 		write.WriteHeader(http.StatusCreated)
 	}
 	// Insert the new user into the database
-	hashpassword, err := bcrypt.GenerateFromPassword([]byte(creds.Password), bcrypt.MinCost)
+	hashpassword, err := bcrypt.GenerateFromPassword([]byte(creds.Password), 12)
 	utils.HandleErr(err)
 	var id int
 	fmt.Println(creds.Gender)
@@ -231,9 +244,13 @@ func isTokenValid(w http.ResponseWriter, r *http.Request) {
 }
 
 func signout(write http.ResponseWriter, read *http.Request) {
+
 	auth := read.Header.Get("Authorization")
 	signout := users.Signout(auth)
 	resp := signout
-	json.NewEncoder(write).Encode(resp)
+	err := json.NewEncoder(write).Encode(resp)
+	if err != nil {
+		return
+	}
 	write.WriteHeader(http.StatusCreated)
 }

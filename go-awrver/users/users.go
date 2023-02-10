@@ -15,7 +15,7 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
-var exptime = 120
+var exptime = 3600
 var client *redis.Client = redis.NewClient(&redis.Options{
 	Addr:     "localhost:6379",
 	Password: "",
@@ -135,7 +135,9 @@ func GetUserInfo(jwt string) map[string]interface{} {
 		fmt.Println(user)
 		defer db.Close()
 		//TODO check cache
-		_, isExpired := checkCache(id, jwt)
+		splitToken := strings.Split(jwt, "Bearer ")
+		_, isExpired := checkCache(id, splitToken[1])
+		fmt.Println(isExpired)
 		if isExpired {
 			return map[string]interface{}{"message": "token is expired."}
 		}
@@ -157,6 +159,7 @@ func GetUserInfo(jwt string) map[string]interface{} {
 }
 
 func Signout(jwt string) map[string]interface{} {
+
 	isValid, exp_time := utils.IsTokenValid(jwt)
 	if isValid != "" {
 		splitToken := strings.Split(jwt, "Bearer ")
@@ -168,6 +171,7 @@ func Signout(jwt string) map[string]interface{} {
 		uid, err := strconv.ParseUint(id, 10, 64)
 		utils.HandleErr(err)
 		u_token = &utils.Unauthorized_token{User_id: uint(uid), Token: jwtToken, Expiration: exp_time}
+
 		db.Create(&u_token)
 		defer db.Close()
 
@@ -196,6 +200,7 @@ func checkCache(id string, jwtToken string) (string, bool) {
 		count += 1
 		c = strconv.FormatInt(int64(count), 10)
 		r, _ := client.Get(c + "-" + id).Result()
+		fmt.Println(r)
 		if r == jwtToken {
 			isExpired = true
 			break
