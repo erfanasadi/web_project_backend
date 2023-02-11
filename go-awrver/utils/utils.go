@@ -2,13 +2,14 @@ package utils
 
 import (
 	"fmt"
-	"github.com/dgrijalva/jwt-go"
-	"github.com/jinzhu/gorm"
-	"golang.org/x/crypto/bcrypt"
 	"regexp"
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/dgrijalva/jwt-go"
+	"github.com/jinzhu/gorm"
+	"golang.org/x/crypto/bcrypt"
 )
 
 type User_account struct {
@@ -120,7 +121,7 @@ func IsTokenValid(jwtToken string) (string, time.Time) {
 	}
 
 	splitToken := strings.Split(jwtToken, "Bearer ")
-	jwtToken = splitToken[1]
+	jwtToken = splitToken[0]
 	fmt.Println("1221")
 	token, err := jwt.ParseWithClaims(jwtToken, &MyCustomClaims{}, func(token *jwt.Token) (interface{}, error) {
 		return []byte("supersecretkey"), nil

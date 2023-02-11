@@ -22,7 +22,7 @@ const (
 )
 
 var db *sql.DB
-var exptime = 150
+var exptime = 36000
 
 type Login struct {
 	EmailOrPhone string

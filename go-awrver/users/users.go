@@ -3,12 +3,13 @@ package users
 import (
 	"database/sql"
 	"fmt"
-	"github.com/dgrijalva/jwt-go"
 	"log"
 	"strconv"
 	"strings"
 	"time"
 	"web_project_backend/utils"
+
+	"github.com/dgrijalva/jwt-go"
 
 	"github.com/go-redis/redis"
 	"github.com/jinzhu/gorm"
@@ -136,7 +137,7 @@ func GetUserInfo(jwt string) map[string]interface{} {
 		defer db.Close()
 		//TODO check cache
 		splitToken := strings.Split(jwt, "Bearer ")
-		_, isExpired := checkCache(id, splitToken[1])
+		_, isExpired := checkCache(id, splitToken[0])
 		fmt.Println(isExpired)
 		if isExpired {
 			return map[string]interface{}{"message": "token is expired."}
@@ -163,7 +164,7 @@ func Signout(jwt string) map[string]interface{} {
 	isValid, exp_time := utils.IsTokenValid(jwt)
 	if isValid != "" {
 		splitToken := strings.Split(jwt, "Bearer ")
-		jwtToken := splitToken[1]
+		jwtToken := splitToken[0]
 		id := isValid
 		db := utils.ConnectDB()
 		u_token := &utils.Unauthorized_token{}
