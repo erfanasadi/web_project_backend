@@ -4,6 +4,7 @@ const db = require("./db/db");
 const axios = require("axios");
 const fs = require("fs")
 const crypto = require('crypto');
+var FormData = require('form-data');
 
 const app = express();
 
@@ -78,11 +79,11 @@ app.post("/purchase", async (req, res) => {
         title = crypto.randomInt(1000000000);
         let transactionIdResponse;
         try {
-            transactionIdResponse = await axios.post('http://127.0.0.1:8000/transaction/', {
-                "amount": req.body.offer_price,
-                "receipt_id": title,
-                "callback": "http://localhost:3001/payment/" + title
-            })
+            var bodyFormData = new FormData();
+            bodyFormData.append('amount', req.body.offer_price);
+            bodyFormData.append('receipt_id', title);
+            bodyFormData.append('callback', "http://localhost:3001/payment/" + title);
+            transactionIdResponse = await axios.post('http://127.0.0.1:8000/transaction/', bodyFormData)
         } catch (error) {
             console.log(error);
         }
