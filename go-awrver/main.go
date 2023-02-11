@@ -215,13 +215,13 @@ func register(write http.ResponseWriter, read *http.Request) {
 		"userID": id,
 	})
 
-	tokenString, err := token.SignedString([]byte(secret))
+	_, err = token.SignedString([]byte(secret))
 	if err != nil {
 		http.Error(write, "Error signing the token", http.StatusInternalServerError)
 		return
 	}
 
-	write.Write([]byte(tokenString))
+	write.Write([]byte("user registered successfully"))
 }
 func profile(w http.ResponseWriter, r *http.Request) {
 	auth := r.Header.Get("Authorization")
