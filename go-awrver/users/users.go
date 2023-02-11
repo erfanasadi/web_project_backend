@@ -135,9 +135,9 @@ func GetUserInfo(jwt string) map[string]interface{} {
 		}
 		fmt.Println(user)
 		defer db.Close()
-		//TODO check cache
+
 		splitToken := strings.Split(jwt, "Bearer ")
-		_, isExpired := checkCache(id, splitToken[0])
+		_, isExpired := CheckCache(id, splitToken[0])
 		fmt.Println(isExpired)
 		if isExpired {
 			return map[string]interface{}{"message": "token is expired."}
@@ -176,7 +176,7 @@ func Signout(jwt string) map[string]interface{} {
 		db.Create(&u_token)
 		defer db.Close()
 
-		c, isExpired := checkCache(id, jwtToken)
+		c, isExpired := CheckCache(id, jwtToken)
 		if isExpired {
 			return map[string]interface{}{"message": "token is expired."}
 		} else {
@@ -193,7 +193,7 @@ func Signout(jwt string) map[string]interface{} {
 
 }
 
-func checkCache(id string, jwtToken string) (string, bool) {
+func CheckCache(id string, jwtToken string) (string, bool) {
 	var count int = 0
 	var c string
 	var isExpired bool = false

@@ -234,14 +234,14 @@ func profile(w http.ResponseWriter, r *http.Request) {
 
 func isTokenValid(w http.ResponseWriter, r *http.Request) {
 	auth := r.Header.Get("Authorization")
-	fmt.Println(auth, "dffd")
 	isValid, _ := utils.IsTokenValid(auth)
-	fmt.Println(isValid)
-	// _, isExpired := users.checkCache(id, splitToken[0])
-	// fmt.Println(isExpired)
-	// if isExpired {
-	// 	w.Write([]byte("token is invalid"))
-	// }
+
+	_, isExpired := users.CheckCache(isValid, auth)
+	fmt.Println(isExpired)
+	if isExpired {
+		w.Write([]byte("token is invalid"))
+		return
+	}
 	if isValid != "" {
 		w.Write([]byte(isValid))
 		return
