@@ -62,6 +62,13 @@ app.post("/purchase", async (req, res) => {
     }
     else {
         available_offer = db.query("SELECT * FROM available_offers WHERE flight_id = $1", [req.body.flight_id]);
+        if (!available_offer) {
+            res.status(400).json({
+                data: {
+                    "message": "flight_id is not valid"
+                }
+            })
+        }
 
         req_flight_class = req.body.flight_class;
         if (req_flight_class === 'Y' && available_offer.y_class_free_capacity == 0) respondNotEnoughCapacity();
@@ -81,10 +88,7 @@ app.post("/purchase", async (req, res) => {
         }
 
         transactionId = transactionIdResponse.data.id;
-        // successTransactionResult = 1;
         userId = axiosResponse.data;
-
-        // currentUser = userProfileResponse.data.data;
 
         try {
             db.query("INSERT INTO purchase (corresponding_user_id, first_name, last_name, flight_serial, offer_price, offer_class, transaction_id, transaction_result, title) VALUES($1, $2, $3, $4, $5, $6, $7, $8, $9)",
@@ -93,34 +97,12 @@ app.post("/purchase", async (req, res) => {
             console.log(error);
         }
 
-        // make transaction successfull in bank
-        // try {
-        //         await axios.get('http://localhost:8000/payed/' + transactionId + '/' + successTransactionResult);
-        // } catch (error) {
-        //     console.log(error);
-        // }
-
-        // let userProfileResponse;
-        // try {
-        //     userProfileResponse = await axios.get('http://localhost:3000/user', {
-        //         headers: {
-        //             "Authorization": req.headers.authorization
-        //         }
-        //     });
-        // } catch (error) {
-        //     console.log(error);
-        //     res.status(404).json({
-        //         data: {
-        //             "message": userProfileResponse.data
-        //         }
-        //     });
-        // }
-
 
 
         res.status(200).json({
             data: {
-                "message": 'transaction created successfully with transaction id: ' + transactionId
+                "message": 'transaction created successfully with transaction id: ' +
+                    transactionId + ' please go to bank payment with address localhost:8000/payment/' + transactionId
             }
         });
     }
@@ -151,27 +133,12 @@ app.post("/user-tickets", async (req, res) => {
             }
         });
     } else {
-        let userProfileResponse;
-        try {
-            userProfileResponse = await axios.get('http://localhost:3000/user', {
-                headers: {
-                    "Authorization": req.headers.authorization
-                }
-            });
-        } catch (error) {
-            console.log(error);
-            res.status(404).json({
-                data: {
-                    "message": userProfileResponse.data
-                }
-            });
-        }
-        currentUser = userProfileResponse.data.data;
+        userId = axiosResponse.data;
 
         tickets = await db.query(`SELECT purchase.transaction_id, purchase.transaction_result, purchase.first_name, purchase.last_name, purchase.flight_serial, flight.flight_id, purchase.offer_price, purchase.offer_class, flight.origin, flight.destination, flight.aircraft, flight.departure_utc, flight.duration
                                     FROM purchase
                                     INNER JOIN flight ON purchase.flight_serial = flight.flight_serial
-                                    WHERE purchase.corresponding_user_id = $1`, [currentUser.User_id]);
+                                    WHERE purchase.corresponding_user_id = $1`, [userId]);
         res.status(200).json({
             data: {
                 "ticket-count": tickets.rows.length,
