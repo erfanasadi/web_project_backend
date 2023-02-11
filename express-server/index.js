@@ -156,7 +156,10 @@ app.post("/user-tickets", async (req, res) => {
         }
         currentUser = userProfileResponse.data.data;
 
-        tickets = await db.query("SELECT * FROM purchase WHERE corresponding_user_id = $1", [currentUser.User_id]);
+        tickets = await db.query(`SELECT purchase.first_name, purchase.last_name, purchase.flight_serial, flight.flight_id, purchase.offer_price, purchase.offer_class, flight.origin, flight.destination, flight.aircraft, flight.departure_utc, flight.duration
+                                    FROM purchase
+                                    INNER JOIN flight ON purchase.flight_serial = flight.flight_serial
+                                    WHERE purchase.corresponding_user_id = $1`, [currentUser.User_id]);
         res.status(200).json({
             data: {
                 "ticket-count": tickets.rows.length,

@@ -46,7 +46,7 @@ func main() {
 	}
 	fmt.Println(db)
 	db.Exec("CREATE TABLE IF NOT EXISTS user_account(user_id SERIAL PRIMARY KEY,email VARCHAR UNIQUE NOT NULL,phone_number VARCHAR UNIQUE NOT NULL, gender VARCHAR(1), first_name VARCHAR,last_name VARCHAR,password_hash VARCHAR);")
-	db.Exec("CREATE TABLE IF NOT EXISTS unauthorized_token (user_id INTEGER REFERENCES user_account ON DELETE CASCADE ON UPDATE CASCADE, token VARCHAR, expiration TIMESTAMP);")
+	db.Exec("CREATE TABLE IF NOT EXISTS unauthorized_tokens (user_id INTEGER REFERENCES user_account ON DELETE CASCADE ON UPDATE CASCADE, token VARCHAR, expiration TIMESTAMP);")
 
 	httpReq := mux.NewRouter()
 	httpReq.Use(PanicHandler)
@@ -237,6 +237,11 @@ func isTokenValid(w http.ResponseWriter, r *http.Request) {
 	fmt.Println(auth, "dffd")
 	isValid, _ := utils.IsTokenValid(auth)
 	fmt.Println(isValid)
+	// _, isExpired := users.checkCache(id, splitToken[0])
+	// fmt.Println(isExpired)
+	// if isExpired {
+	// 	w.Write([]byte("token is invalid"))
+	// }
 	if isValid != "" {
 		w.Write([]byte(isValid))
 		return
