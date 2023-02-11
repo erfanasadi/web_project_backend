@@ -4,16 +4,17 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
-	"github.com/dgrijalva/jwt-go"
-	"github.com/gorilla/mux"
-	_ "github.com/lib/pq"
-	"golang.org/x/crypto/bcrypt"
 	"io/ioutil"
 	"log"
 	"net/http"
 	"time"
 	"web_project_backend/users"
 	"web_project_backend/utils"
+
+	"github.com/dgrijalva/jwt-go"
+	"github.com/gorilla/mux"
+	_ "github.com/lib/pq"
+	"golang.org/x/crypto/bcrypt"
 )
 
 const (
@@ -44,6 +45,8 @@ func main() {
 		log.Fatalf("Error connecting to the database: %v", err)
 	}
 	fmt.Println(db)
+	db.Exec("CREATE TABLE IF NOT EXISTS user_account(user_id SERIAL PRIMARY KEY,email VARCHAR UNIQUE NOT NULL,phone_number VARCHAR UNIQUE NOT NULL, gender VARCHAR(1), first_name VARCHAR,last_name VARCHAR,password_hash VARCHAR);")
+	db.Exec("CREATE TABLE IF NOT EXISTS unauthorized_token (user_id INTEGER REFERENCES user_account ON DELETE CASCADE ON UPDATE CASCADE, token VARCHAR, expiration TIMESTAMP);")
 
 	httpReq := mux.NewRouter()
 	httpReq.Use(PanicHandler)

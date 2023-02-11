@@ -2,11 +2,20 @@
 const express = require("express");
 const db = require("./db/db");
 const axios = require("axios");
+const fs = require("fs")
 
 
 const app = express();
 
 app.use(express.json());
+
+
+const createTablesQuery = fs.readFileSync('./sql/init_sql.sql').toString()
+const createDbSchema = async function () {
+    await db.query(createTablesQuery)
+}
+
+createDbSchema();
 
 
 app.get("/flight/:date/:origin/:destination", async (req, res) => {
