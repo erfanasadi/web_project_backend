@@ -3,7 +3,8 @@ const express = require("express");
 const db = require("./db/db");
 const axios = require("axios");
 const fs = require("fs")
-
+const crypto = require('crypto');
+var FormData = require('form-data');
 
 const app = express();
 
@@ -16,7 +17,6 @@ const createDbSchema = async function () {
 }
 
 createDbSchema();
-
 
 app.get("/flight/:date/:origin/:destination", async (req, res) => {
     console.log(req.params)
@@ -63,66 +63,61 @@ app.post("/purchase", async (req, res) => {
     }
     else {
         available_offer = db.query("SELECT * FROM available_offers WHERE flight_id = $1", [req.body.flight_id]);
+        if (!available_offer) {
+            res.status(400).json({
+                data: {
+                    "message": "flight_id is not valid"
+                }
+            })
+        }
 
         req_flight_class = req.body.flight_class;
         if (req_flight_class === 'Y' && available_offer.y_class_free_capacity == 0) respondNotEnoughCapacity();
         else if (req_flight_class === 'J' && available_offer.j_class_free_capacity == 0) respondNotEnoughCapacity();
         else if (req_flight_class === 'F' && available_offer.f_class_free_capacity == 0) respondNotEnoughCapacity();
 
+        title = crypto.randomInt(1000000000);
         let transactionIdResponse;
         try {
-            transactionIdResponse = await axios.post('http://127.0.0.1:8000/transaction/', {
-                "amount": req.body.offer_price,
-                "receipt_id": 23,
-                "callback": "https://google.com"
-            })
+            var bodyFormData = new FormData();
+            bodyFormData.append('amount', req.body.offer_price);
+            bodyFormData.append('receipt_id', title);
+            bodyFormData.append('callback', "http://localhost:3001/payment/" + title);
+            transactionIdResponse = await axios.post('http://127.0.0.1:8000/transaction/', bodyFormData)
         } catch (error) {
             console.log(error);
         }
 
         transactionId = transactionIdResponse.data.id;
-        successTransactionResult = 1;
-
-        // make transaction successfull in bank
-        // try {
-        //         await axios.get('http://localhost:8000/payed/' + transactionId + '/' + successTransactionResult);
-        // } catch (error) {
-        //     console.log(error);
-        // }
-
-        let userProfileResponse;
-        try {
-            userProfileResponse = await axios.get('http://localhost:3000/user', {
-                headers: {
-                    "Authorization": req.headers.authorization
-                }
-            });
-        } catch (error) {
-            console.log(error);
-            res.status(404).json({
-                data: {
-                    "message": userProfileResponse.data
-                }
-            });
-        }
-
-        currentUser = userProfileResponse.data.data;
+        userId = axiosResponse.data;
 
         try {
-            db.query("INSERT INTO purchase (corresponding_user_id, title, first_name, last_name, flight_serial, offer_price, offer_class, transaction_id, transaction_result) VALUES($1, 'ticket', $2, $3, $4, $5, $6, $7, $8)",
-                [currentUser.User_id, req.body.First_name, req.body.Last_name, req.body.flight_serial, req.body.offer_price, req.body.offer_class, transactionId, successTransactionResult]);
+            db.query("INSERT INTO purchase (corresponding_user_id, first_name, last_name, flight_serial, offer_price, offer_class, transaction_id, transaction_result, title) VALUES($1, $2, $3, $4, $5, $6, $7, $8, $9)",
+                [userId, req.body.First_name, req.body.Last_name, req.body.flight_serial, req.body.offer_price, req.body.offer_class, transactionId, 0, title.toString()]);
         } catch (error) {
             console.log(error);
         }
+
+
 
         res.status(200).json({
             data: {
-                "message": 'transaction was successful with transaction id: ' + transactionId
+                "message": 'transaction created successfully with transaction id: ' +
+                    transactionId + ' please go to bank payment with address localhost:8000/payment/' + transactionId
             }
         });
     }
 
 
+});
+
+app.get("/payment/:title/:result", async (req, res) => {
+    db.query("UPDATE purchase SET transaction_result = $1 WHERE title = $2", [req.params.result, req.params.title])
+    res.status(200).json({
+        data: {
+            "message": 'transaction result: ' + req.params.result
+        }
+    });
 });
 
 app.post("/user-tickets", async (req, res) => {
@@ -139,27 +134,12 @@ app.post("/user-tickets", async (req, res) => {
             }
         });
     } else {
-        let userProfileResponse;
-        try {
-            userProfileResponse = await axios.get('http://localhost:3000/user', {
-                headers: {
-                    "Authorization": req.headers.authorization
-                }
-            });
-        } catch (error) {
-            console.log(error);
-            res.status(404).json({
-                data: {
-                    "message": userProfileResponse.data
-                }
-            });
-        }
-        currentUser = userProfileResponse.data.data;
+        userId = axiosResponse.data;
 
-        tickets = await db.query(`SELECT purchase.first_name, purchase.last_name, purchase.flight_serial, flight.flight_id, purchase.offer_price, purchase.offer_class, flight.origin, flight.destination, flight.aircraft, flight.departure_utc, flight.duration
+        tickets = await db.query(`SELECT purchase.transaction_id, purchase.transaction_result, purchase.first_name, purchase.last_name, purchase.flight_serial, flight.flight_id, purchase.offer_price, purchase.offer_class, flight.origin, flight.destination, flight.aircraft, flight.departure_utc, flight.duration
                                     FROM purchase
                                     INNER JOIN flight ON purchase.flight_serial = flight.flight_serial
-                                    WHERE purchase.corresponding_user_id = $1`, [currentUser.User_id]);
+                                    WHERE purchase.corresponding_user_id = $1`, [userId]);
         res.status(200).json({
             data: {
                 "ticket-count": tickets.rows.length,
