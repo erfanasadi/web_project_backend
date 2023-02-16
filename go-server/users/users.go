@@ -197,18 +197,41 @@ func CheckCache(id string, jwtToken string) (string, bool) {
 	var count int = 0
 	var c string
 	var isExpired bool = false
-	for true {
-		count += 1
-		c = strconv.FormatInt(int64(count), 10)
-		r, _ := client.Get(c + "-" + id).Result()
-		fmt.Println(r)
-		if r == jwtToken {
-			isExpired = true
-			break
+	_, err := client.Ping().Result()
+	if err != nil {
+		fmt.Println("Redis client is not up")
+		var db *sql.DB
+		db, err = sql.Open("postgres", "user=postgres password=alierfan dbname=webbackend sslmode=disable")
+		if err != nil {
+			log.Fatalf("Error connecting to the database: %v", err)
 		}
-		if r == "" {
-			break
+		var token = 0
+		err = db.QueryRow("SELECT token  FROM unauthorized_tokens  WHERE token =$1 ", jwtToken).Scan(&token)
+		if err != nil {
+			if err == sql.ErrNoRows {
+				fmt.Println(token)
+				return "no found", false
+			} else {
+				fmt.Println("error in postgres database")
+			}
 		}
+		fmt.Println(token)
+		return "found", true
+	} else {
+		for true {
+			count += 1
+			c = strconv.FormatInt(int64(count), 10)
+			r, _ := client.Get(c + "-" + id).Result()
+			fmt.Println(r)
+			if r == jwtToken {
+				isExpired = true
+				break
+			}
+			if r == "" {
+				break
+			}
+		}
+		return c, isExpired
 	}
-	return c, isExpired
+	return "both postgres and redis not work", false
 }
