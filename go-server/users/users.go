@@ -172,18 +172,22 @@ func Signout(jwt string) map[string]interface{} {
 		uid, err := strconv.ParseUint(id, 10, 64)
 		utils.HandleErr(err)
 		u_token = &utils.Unauthorized_token{User_id: uint(uid), Token: jwtToken, Expiration: exp_time}
-
-		db.Create(&u_token)
-		defer db.Close()
-
 		c, isExpired := CheckCache(id, jwtToken)
 		if isExpired {
 			return map[string]interface{}{"message": "token is expired."}
 		} else {
-			client.Set(c+"-"+id, jwtToken, time.Second*time.Duration(exptime)).Err()
+			_, err := client.Ping().Result()
 			if err != nil {
-				utils.HandleErr(err)
+				fmt.Println("Redis client is not up")
+			} else {
+				err = client.Set(c+"-"+id, jwtToken, time.Second*time.Duration(exptime)).Err()
+				if err != nil {
+					utils.HandleErr(err)
+				}
 			}
+			db.Create(&u_token)
+			defer db.Close()
+
 		}
 
 		return map[string]interface{}{"message": "signed out successfully."}
@@ -205,14 +209,14 @@ func CheckCache(id string, jwtToken string) (string, bool) {
 		if err != nil {
 			log.Fatalf("Error connecting to the database: %v", err)
 		}
-		var token = 0
+		var token = ""
 		err = db.QueryRow("SELECT token  FROM unauthorized_tokens  WHERE token =$1 ", jwtToken).Scan(&token)
 		if err != nil {
 			if err == sql.ErrNoRows {
 				fmt.Println(token)
 				return "no found", false
 			} else {
-				fmt.Println("error in postgres database")
+				fmt.Println(err, "saf")
 			}
 		}
 		fmt.Println(token)
